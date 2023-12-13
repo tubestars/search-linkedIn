@@ -1,0 +1,40 @@
+import os
+from telegram import Bot
+from telegram.ext import CommandHandler, MessageHandler, Filters, Updater
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHANNEL_ID = "@your_channel_username"  # Замените на ваш актуальный идентификатор канала
+
+def start(update, context):
+    update.message.reply_text("Привет! Этот бот ищет сообщения по ключевым словам в вашем канале.")
+
+def search_keywords(update, context):
+    keywords = context.args
+    if not keywords:
+        update.message.reply_text("Пожалуйста, укажите ключевые слова для поиска.")
+        return
+
+    messages = context.bot.get_chat_history(chat_id=CHANNEL_ID, text=" ".join(keywords))
+
+    if messages:
+        links = [f"https://t.me/{CHANNEL_ID}/{message.message_id}" for message in messages]
+        update.message.reply_text("Ссылки на сообщения с ключевыми словами:\n" + "\n".join(links))
+    else:
+        update.message.reply_text("Сообщений с ключевыми словами не найдено.")
+
+def main():
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("search", search_keywords, pass_args=True))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, search_keywords))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
